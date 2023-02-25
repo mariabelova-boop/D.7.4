@@ -1,0 +1,89 @@
+{% extends 'flatpages/default.html' %}
+
+{ % load censor % }
+
+{% load tegs %}
+<!-- Название у нас будет products -->
+{% block title %}
+News
+{% endblock title %}
+
+<!-- В контенте на странице мы выводим все товары -->
+{% block content %}
+<h1>Все новости</h1>
+ <h3>{{ time_now|date:'M d Y' }}</h3>
+ <h4> Всего новостей: {{ news|length }}</h4>
+
+ {# Добавляем форму, которая объединяет набор полей, которые будут отправляться в запросе #}
+   <form action="" method="get">
+       {# Переменная, которую мы передали через контекст, может сгенерировать нам форму с полями #}
+       {{ filterset.form.as_p }}
+       {# Добавим кнопку отправки данных формы #}
+       <input type="submit" value="Найти" />
+   </form>
+
+<hr>
+{# Теперь будем проверять не request.user.is_authenticated, а конкретные права #}
+    {% if perms.simpleapp.add_product %}
+    <a href="{% url 'post_create' %}">Добавить пост</a>
+    {% endif %}
+ {% if news %}
+       <table> <!-- Начинаем описывать таблицу -->
+           <tr> <!-- Добавляем строку -->
+               <td> Название </td>
+               <td> Дата </td>
+               <td> Категория </td>
+               <td> Текст </td>
+               <td> Рейтинг </td>
+
+               {# Условие получается составным. #}
+                {% if perms.news.search or perms.news.delete %}
+                <td>Действия</td>
+                {% endif %}
+
+           </tr>
+           {% for news in news %}
+           <tr>
+               <td>{{ news.title|truncatewords:10 }}</td>
+               <td>{{ news.dateCreation }}</td>
+               <td>{{ news.categoryType }}</td>
+               <td>{{ news.text|truncatewords:20 }}</td>
+               <td>{{ news.rating }}</td>
+
+               <td>
+                    {# А здесь доступ для каждой ссылки теперь будем проверять отдельно #}
+                    {% if perms.news.post %}
+                    <a href="{% url 'post_update' pk=news.id %}">Изменить</a>
+                    {% endif %}
+                    {% if perms.news.delete %}
+                    <a href="{% url 'post_delete' news.id %}">Удалить</a>
+                    {% endif %}
+                </td>
+           </tr>
+           {% endfor %}
+       </table> <!-- ... и таблицы -->
+   {% else %}
+       <!-- Если товаров нет, говорим, что товаров нет ;) -->
+       <h2>Новостей нет!</h2>
+   {% endif %}
+
+{% if page_obj.has_previous %}
+ <a href="?{% url_replace page=1 %}">1</a>
+       {% if page_obj.previous_page_number != 1 %}
+           ...
+           <a href="?{% url_replace page=page_obj.previous_page_number %}">{{ page_obj.previous_page_number }}</a>
+       {% endif %}
+   {% endif %}
+
+   {# Информация о текущей странице #}
+   {{ page_obj.number }}
+
+   {# Информация о следующих страницах #}
+   {% if page_obj.has_next %}
+       <a href="?page={{ page_obj.next_page_number }}">{{ page_obj.next_page_number }}</a>
+       {% if paginator.num_pages != page_obj.next_page_number %}
+           ...
+           <a href="?page={{ page_obj.paginator.num_pages }}">{{ page_obj.paginator.num_pages }}</a>
+       {% endif %}
+   {% endif %}
+{% endblock content %}
